@@ -1,0 +1,28 @@
+{
+	"node": "n8n-nodes-meta-muse.lmChatMetaMuse",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["AI"],
+	"subcategories": {
+		"AI": ["Language Models", "Chat Models (Recommended)"]
+	},
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://dev.meta.ai/docs/overview"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://dev.meta.ai/docs/overview"
+			}
+		]
+	},
+	"alias": [
+		"Meta Muse Chat Model",
+		"Meta Model API",
+		"Muse Wonder",
+		"Muse Spark",
+		"AI Agent Model"
+	]
+}

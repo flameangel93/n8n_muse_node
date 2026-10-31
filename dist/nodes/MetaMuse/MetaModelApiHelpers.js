@@ -1,0 +1,141 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.buildMultipartBody = buildMultipartBody;
+exports.enrichResponsesApiOutput = enrichResponsesApiOutput;
+exports.parseSamSegmentationText = parseSamSegmentationText;
+function isFilePart(part) {
+    return 'data' in part && Buffer.isBuffer(part.data);
+}
+/**
+ * Builds an RFC 7578 multipart/form-data Buffer without external dependencies.
+ */
+function buildMultipartBody(parts) {
+    const boundary = `----MetaModelApiBoundary${Date.now().toString(16)}${Math.random()
+        .toString(16)
+        .slice(2)}`;
+    const chunks = [];
+    for (const part of parts) {
+        chunks.push(Buffer.from(`--${boundary}\r\n`, 'utf8'));
+        if (isFilePart(part)) {
+            const safeFilename = part.filename.replace(/["\r\n]/g, '_');
+            chunks.push(Buffer.from(`Content-Disposition: form-data; name="${part.name}"; filename="${safeFilename}"\r\n` +
+                `Content-Type: ${part.contentType || 'application/octet-stream'}\r\n\r\n`, 'utf8'));
+            chunks.push(part.data);
+            chunks.push(Buffer.from('\r\n', 'utf8'));
+        }
+        else {
+            let header = `Content-Disposition: form-data; name="${part.name}"\r\n`;
+            if (part.contentType) {
+                header += `Content-Type: ${part.contentType}\r\n`;
+            }
+            header += '\r\n';
+            chunks.push(Buffer.from(header, 'utf8'));
+            chunks.push(Buffer.from(part.value, 'utf8'));
+            chunks.push(Buffer.from('\r\n', 'utf8'));
+        }
+    }
+    chunks.push(Buffer.from(`--${boundary}--\r\n`, 'utf8'));
+    return {
+        body: Buffer.concat(chunks),
+        contentType: `multipart/form-data; boundary=${boundary}`,
+    };
+}
+/**
+ * Extracts top-level convenience fields (`output_text`, `reasoning_summary`,
+ * `tool_calls`, `citations`, `image_generation_calls`) from a Meta Model API
+ * `/v1/responses` response object.
+ */
+function enrichResponsesApiOutput(response) {
+    const output = Array.isArray(response.output) ? response.output : [];
+    const textParts = [];
+    const reasoningSummaries = [];
+    const toolCalls = [];
+    const citations = [];
+    const imageCalls = [];
+    for (const item of output) {
+        if (item.type === 'message' && Array.isArray(item.content)) {
+            for (const block of item.content) {
+                if (block.type === 'output_text' && typeof block.text === 'string') {
+                    textParts.push(block.text);
+                    if (Array.isArray(block.annotations)) {
+                        for (const ann of block.annotations) {
+                            citations.push(ann);
+                        }
+                    }
+                }
+            }
+        }
+        else if (item.type === 'reasoning' && Array.isArray(item.summary)) {
+            for (const sumBlock of item.summary) {
+                if (typeof sumBlock.text === 'string') {
+                    reasoningSummaries.push(sumBlock.text);
+                }
+            }
+        }
+        else if (item.type === 'function_call') {
+            toolCalls.push(item);
+        }
+        else if (item.type === 'image_generation_call') {
+            imageCalls.push(item);
+        }
+    }
+    return {
+        output_text: textParts.join('\n'),
+        ...(reasoningSummaries.length > 0
+            ? { reasoning_summary: reasoningSummaries.join('\n') }
+            : {}),
+        ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+        ...(citations.length > 0 ? { citations } : {}),
+        ...(imageCalls.length > 0 ? { image_generation_calls: imageCalls } : {}),
+        ...response,
+    };
+}
+/**
+ * Parses SAM 3.1 (`sam-3.1`) special-token output text from `/v1/responses`:
+ * `<0f>0<|box;x1=353;y1=382;x2=453;y2=427;w=537;h=561|><|mask;x=0;y=0;data=46,101,~...|>,1<|box;...|>`
+ */
+function parseSamSegmentationText(outputText) {
+    if (!outputText || !outputText.trim()) {
+        return [];
+    }
+    const frames = [];
+    const lines = outputText
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+    for (const line of lines) {
+        const frameMatch = /^<(\d+)f>(.*)$/.exec(line);
+        const frameIndex = frameMatch ? Number.parseInt(frameMatch[1], 10) : 0;
+        const remainder = frameMatch ? frameMatch[2] : line;
+        const objects = [];
+        const objectRegex = /(\d+)<\|box;x1=(-?\d+);y1=(-?\d+);x2=(-?\d+);y2=(-?\d+);w=(\d+);h=(\d+)\|>(?:<\|mask;x=(-?\d+);y=(-?\d+);data=([^|]*)\|>)?/g;
+        let match;
+        while ((match = objectRegex.exec(remainder)) !== null) {
+            const obj = {
+                objectId: Number.parseInt(match[1], 10),
+                box: {
+                    x1: Number.parseInt(match[2], 10),
+                    y1: Number.parseInt(match[3], 10),
+                    x2: Number.parseInt(match[4], 10),
+                    y2: Number.parseInt(match[5], 10),
+                    width: Number.parseInt(match[6], 10),
+                    height: Number.parseInt(match[7], 10),
+                },
+            };
+            if (match[8] !== undefined && match[9] !== undefined && match[10] !== undefined) {
+                obj.mask = {
+                    x: Number.parseInt(match[8], 10),
+                    y: Number.parseInt(match[9], 10),
+                    data: match[10],
+                };
+            }
+            objects.push(obj);
+        }
+        frames.push({
+            frameIndex,
+            objects,
+        });
+    }
+    return frames;
+}
+//# sourceMappingURL=MetaModelApiHelpers.js.map

@@ -1,0 +1,64 @@
+{
+	"name": "n8n-nodes-meta-muse",
+	"version": "1.0.0",
+	"description": "n8n community nodes for Meta Muse (Muse Wonder, Muse Spark, Muse Image, Muse Voice Transcribe, and SAM 3.1) powered by the Meta Model API (https://api.meta.ai/v1).",
+	"keywords": [
+		"n8n-community-node-package",
+		"n8n",
+		"meta",
+		"muse",
+		"meta-model-api",
+		"muse-wonder",
+		"muse-spark",
+		"muse-image",
+		"muse-voice-transcribe",
+		"sam-3.1",
+		"ai",
+		"llm",
+		"langchain"
+	],
+	"license": "MIT",
+	"homepage": "https://github.com/flameangel93/n8n_muse_node",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/flameangel93/n8n_muse_node.git"
+	},
+	"author": {
+		"name": "Meta Muse Community Node"
+	},
+	"main": "index.js",
+	"scripts": {
+		"build": "tsc && node scripts/copy-assets.mjs",
+		"dev": "tsc --watch",
+		"lint": "tsc --noEmit",
+		"prepublishOnly": "npm run build"
+	},
+	"files": [
+		"dist"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"credentials": [
+			"dist/credentials/MetaModelApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/MetaMuse/MetaMuse.node.js",
+			"dist/nodes/LmChatMetaMuse/LmChatMetaMuse.node.js"
+		]
+	},
+	"peerDependencies": {
+		"@n8n/ai-node-sdk": "*",
+		"n8n-workflow": "*"
+	},
+	"peerDependenciesMeta": {
+		"@n8n/ai-node-sdk": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@n8n/ai-node-sdk": "latest",
+		"@types/node": "^22.0.0",
+		"n8n-workflow": "latest",
+		"typescript": "^5.6.0"
+	}
+}

@@ -1,0 +1,32 @@
+{
+	"node": "n8n-nodes-meta-muse.metaMuse",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["AI", "Development"],
+	"subcategories": {
+		"AI": ["Language Models", "Agents", "Multimodal"]
+	},
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://dev.meta.ai/docs/overview"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://dev.meta.ai/docs/overview"
+			}
+		]
+	},
+	"alias": [
+		"Meta",
+		"Muse",
+		"Meta Model API",
+		"Muse Wonder",
+		"Muse Spark",
+		"Muse Image",
+		"Muse Voice Transcribe",
+		"SAM 3.1",
+		"Segment Anything"
+	]
+}
