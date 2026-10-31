@@ -53,6 +53,9 @@
 	"peerDependenciesMeta": {
 		"@n8n/ai-node-sdk": {
 			"optional": true
+		},
+		"n8n-workflow": {
+			"optional": true
 		}
 	},
 	"devDependencies": {
