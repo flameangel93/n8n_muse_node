@@ -122,21 +122,21 @@ export class LmChatMetaMuse implements INodeType {
 				displayName: 'Meta Model API Protocol',
 				name: 'apiProtocol',
 				type: 'options',
-				default: 'responses',
+				default: 'chatCompletions',
 				description:
-					'Choose which Meta Model API surface to call. Both use the same models, auth, and per-token pricing (https://dev.meta.ai/docs/protocols).',
+					'Choose which Meta Model API surface to call. Both use the same models, auth, and per-token pricing (https://dev.meta.ai/docs/protocols). Chat Completions is the recommended default for n8n AI Agent tool loops.',
 				options: [
 					{
-						name: 'Responses API (POST /v1/responses) — Recommended for Agents',
-						value: 'responses',
-						description:
-							'Recommended default for agentic and multi-step tool workflows; supports reasoning summaries and built-in web search grounding',
-					},
-					{
-						name: 'Chat Completions API (POST /v1/chat/completions)',
+						name: 'Chat Completions API (POST /v1/chat/completions) — Recommended for n8n AI Agent',
 						value: 'chatCompletions',
 						description:
-							'Classic OpenAI-compatible messages-array endpoint for standard chat and tool calling',
+							'OpenAI-compatible messages-array endpoint with full function tool calling and streaming support in n8n AI Agents',
+					},
+					{
+						name: 'Responses API (POST /v1/responses)',
+						value: 'responses',
+						description:
+							'Meta Model API Responses endpoint; supports reasoning summaries and built-in web search grounding',
 					},
 				],
 			},
@@ -396,17 +396,18 @@ export class LmChatMetaMuse implements INodeType {
 				? (this.getNodeParameter('customModel', itemIndex) as string).trim()
 				: selectedModel;
 
-		const apiProtocol = this.getNodeParameter('apiProtocol', itemIndex, 'responses') as string;
+		const apiProtocol = this.getNodeParameter(
+			'apiProtocol',
+			itemIndex,
+			'chatCompletions',
+		) as string;
 		const useResponsesApi = apiProtocol === 'responses';
 
 		const options = this.getNodeParameter('options', itemIndex, {}) as IDataObject;
 
 		const additionalParams: Record<string, unknown> = {};
 
-		if (
-			options.promptCacheRetention &&
-			options.promptCacheRetention !== 'default'
-		) {
+		if (options.promptCacheRetention && options.promptCacheRetention !== 'default') {
 			additionalParams.prompt_cache_retention = options.promptCacheRetention;
 		}
 
@@ -424,17 +425,20 @@ export class LmChatMetaMuse implements INodeType {
 				? (String(options.reasoningSummary) as 'auto' | 'concise' | 'detailed')
 				: undefined;
 
+		// Set supportsStrictToolCalling: false (just like n8n's built-in LmChatOpenAi for
+		// OpenAI-compatible endpoints) so LangChain doesn't send `strict: null` on tool schemas,
+		// which triggers HTTP 400 on the Meta Model API.
 		const modelConfig: OpenAiModel = {
 			type: 'openai',
 			baseUrl,
 			apiKey,
 			model,
 			useResponsesApi,
-			supportsStrictToolCalling: true,
+			supportsStrictToolCalling: false,
 			streaming: options.streaming !== undefined ? Boolean(options.streaming) : true,
 		};
 
-		if (options.temperature !== undefined) {
+		if (options.temperature !== undefined && Number(options.temperature) !== 1) {
 			modelConfig.temperature = Number(options.temperature);
 		}
 
@@ -443,8 +447,11 @@ export class LmChatMetaMuse implements INodeType {
 		}
 
 		if (options.maxTokens !== undefined && Number(options.maxTokens) >= 16) {
-			modelConfig.maxCompletionTokens = Number(options.maxTokens);
-			modelConfig.maxTokens = Number(options.maxTokens);
+			if (useResponsesApi) {
+				additionalParams.max_output_tokens = Number(options.maxTokens);
+			} else {
+				modelConfig.maxCompletionTokens = Number(options.maxTokens);
+			}
 		}
 
 		if (options.promptCacheKey) {

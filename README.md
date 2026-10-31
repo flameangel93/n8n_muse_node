@@ -77,7 +77,7 @@ When n8n is deployed via **Coolify** on a VPS, the n8n container mounts a persis
 
 1. Open **Coolify → Your Project → Your n8n Service → Terminal** (inside the n8n container) and run:
    ```bash
-   mkdir -p /home/node/.n8n/nodes && cd /home/node/.n8n/nodes && wget -O /tmp/n8n-nodes-meta-muse-1.0.0.tgz https://raw.githubusercontent.com/flameangel93/n8n_muse_node/main/n8n-nodes-meta-muse-1.0.0.tgz && npm install --omit=peer --ignore-scripts /tmp/n8n-nodes-meta-muse-1.0.0.tgz
+   mkdir -p /home/node/.n8n/nodes && cd /home/node/.n8n/nodes && wget -O /tmp/n8n-nodes-meta-muse-1.0.1.tgz https://raw.githubusercontent.com/flameangel93/n8n_muse_node/main/n8n-nodes-meta-muse-1.0.1.tgz && npm install --omit=peer --ignore-scripts /tmp/n8n-nodes-meta-muse-1.0.1.tgz
    ```
 2. Click **Restart** on your n8n service in Coolify.
 
